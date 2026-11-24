@@ -9,6 +9,7 @@ import com.uade.hmig1.data.RobotRepository
 import com.uade.hmig1.domain.CommandRules
 import com.uade.hmig1.domain.LinkPolicy
 import com.uade.hmig1.domain.model.Alert
+import com.uade.hmig1.domain.model.AlertSeverity
 import com.uade.hmig1.domain.model.AlertStatus
 import com.uade.hmig1.domain.model.CommandRecord
 import com.uade.hmig1.domain.model.CommandStatus
@@ -45,7 +46,10 @@ data class HmiUiState(
     val pendingCommands: List<CommandRecord> get() =
         commands.filter { it.status == CommandStatus.PENDING || it.status == CommandStatus.NO_RESPONSE }
 
-    fun disabledReason(type: CommandType): String? = CommandRules.disabledReason(type, telemetry, stale)
+    val hasUnackedCritical: Boolean get() = activeAlerts.any { it.severity == AlertSeverity.CRITICAL }
+
+    fun disabledReason(type: CommandType): String? =
+        CommandRules.disabledReason(type, telemetry, stale, hasUnackedCritical)
 }
 
 class HmiViewModel(private val repo: RobotRepository) : ViewModel() {
@@ -98,6 +102,8 @@ class HmiViewModel(private val repo: RobotRepository) : ViewModel() {
     fun simBatteryLow() = repo.simulation.forceBatteryLow()
     fun simObstacle() = repo.simulation.triggerObstacle()
     fun simPatientAway() = repo.simulation.patientWalksAway()
+    fun simVoiceFault(fault: Boolean) = repo.simulation.setVoiceFault(fault)
+    fun simWeakSignal(weak: Boolean) = repo.simulation.setWeakSignal(weak)
     fun simReset() = repo.simulation.reset()
 
     companion object {

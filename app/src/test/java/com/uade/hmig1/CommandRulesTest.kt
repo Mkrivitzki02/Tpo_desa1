@@ -54,4 +54,21 @@ class CommandRulesTest {
         assertNull(CommandRules.disabledReason(CommandType.OPERATIONAL_STOP, t, stale = true))
         assertNull(CommandRules.disabledReason(CommandType.RETURN_TO_SAFE_POINT, t, stale = true))
     }
+
+    @Test fun resumeBlockedUntilCriticalAlertIsAcknowledged() {
+        val t = telemetry(OperationalState.PAUSED, withMission = true)
+        assertNotNull(CommandRules.disabledReason(CommandType.RESUME_MISSION, t, false, unackedCritical = true))
+        assertNull(CommandRules.disabledReason(CommandType.RESUME_MISSION, t, false, unackedCritical = false))
+    }
+
+    @Test fun forcedLowBatteryBlocksStart() {
+        // El botón "Forzar batería baja" del simulador debe mostrar también el bloqueo de inicio.
+        val t = telemetry(battery = com.uade.hmig1.data.sim.RobotSimulator.FORCED_LOW_BATTERY)
+        assertNotNull(CommandRules.disabledReason(CommandType.START_MISSION, t, stale = false))
+    }
+
+    @Test fun startAllowedJustAboveMinimum() {
+        assertNull(CommandRules.disabledReason(CommandType.START_MISSION, telemetry(battery = 20.5), stale = false))
+        assertNotNull(CommandRules.disabledReason(CommandType.START_MISSION, telemetry(battery = 20.0), stale = false))
+    }
 }

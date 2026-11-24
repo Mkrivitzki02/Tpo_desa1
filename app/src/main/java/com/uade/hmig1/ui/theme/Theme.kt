@@ -42,5 +42,9 @@ fun HmiTheme(content: @Composable () -> Unit) {
 
 private val esAR: Locale = Locale.forLanguageTag("es-AR")
 fun Double.fmt1(): String = String.format(esAR, "%.1f", this)
-fun Long.clock(): String = java.text.SimpleDateFormat("HH:mm:ss", esAR).format(java.util.Date(this))
-fun Long.dateTime(): String = java.text.SimpleDateFormat("dd/MM HH:mm", esAR).format(java.util.Date(this))
+// DateTimeFormatter es inmutable y thread-safe: se crea una vez y no en cada recomposición.
+private val clockFmt = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss", esAR)
+private val dateTimeFmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm", esAR)
+private fun Long.local() = java.time.Instant.ofEpochMilli(this).atZone(java.time.ZoneId.systemDefault())
+fun Long.clock(): String = clockFmt.format(local())
+fun Long.dateTime(): String = dateTimeFmt.format(local())

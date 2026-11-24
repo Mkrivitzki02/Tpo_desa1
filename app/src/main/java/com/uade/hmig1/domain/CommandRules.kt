@@ -18,8 +18,11 @@ object CommandRules {
         OperationalState.RETURNING,
     )
 
-    /** Devuelve null si la orden está habilitada, o el motivo por el que no lo está. */
-    fun disabledReason(type: CommandType, t: Telemetry?, stale: Boolean): String? {
+    /**
+     * Devuelve null si la orden está habilitada, o el motivo por el que no lo está.
+     * [unackedCritical]: hay una alerta crítica sin reconocer (no se reanuda sin verificar la causa).
+     */
+    fun disabledReason(type: CommandType, t: Telemetry?, stale: Boolean, unackedCritical: Boolean = false): String? {
         if (t == null) return "Sin datos del robot"
         return when (type) {
             CommandType.START_MISSION -> when {
@@ -31,9 +34,11 @@ object CommandRules {
             }
             CommandType.PAUSE_MISSION ->
                 if (t.state in moving) null else "No hay desplazamiento para pausar"
-            CommandType.RESUME_MISSION ->
-                if (t.state == OperationalState.PAUSED || t.state == OperationalState.STOPPED) null
-                else "La misión no está pausada"
+            CommandType.RESUME_MISSION -> when {
+                t.state != OperationalState.PAUSED && t.state != OperationalState.STOPPED -> "La misión no está pausada"
+                unackedCritical -> "Reconocé la alerta crítica antes de reanudar"
+                else -> null
+            }
             CommandType.CANCEL_MISSION ->
                 if (t.mission != null) null else "No hay misión activa"
             CommandType.RETURN_TO_SAFE_POINT ->

@@ -73,6 +73,7 @@ Los comandos son: iniciar, pausar, reanudar y cancelar misión; volver a punto s
 - **Habilitación:** cada orden tiene sus condiciones (ver `CommandRules`). Si una orden no está disponible, el botón aparece deshabilitado con el motivo.
 - **Estados visibles:** pendiente, confirmada, rechazada (con motivo) o sin respuesta (sin confirmación del robot tras 5 s).
 - **Confirmación obligatoria:** cancelar, volver a punto seguro y parada operativa piden confirmación.
+- **Reanudar con criterio:** no se puede reanudar con una alerta crítica sin reconocer, y después de una parada operativa hace falta confirmar un desbloqueo («Desbloquear y reanudar»).
 
 > La parada operativa es un comando de software simulado y **no reemplaza una parada de emergencia física**. Una orden enviada no equivale a una orden ejecutada.
 
@@ -83,12 +84,17 @@ El ícono 🔧 de la barra superior abre el **Simulador de escenarios**.
 | # | Escenario | Pasos |
 |---|-----------|-------|
 | 1 | Misión normal | En **Misiones**, ingresar `P-2847`, elegir *Consultorio 3B* e **Iniciar misión**. En el **Panel**: buscar paciente → acompañar (sala de espera → ascensor → pasillo B) → esperar entrega → misión completada → regreso a base. Dura unos 70 s. |
-| 2 | Batería baja | En el Simulador, **Forzar batería baja**. Aparece una advertencia en Alertas con la acción **Volver a punto seguro**. Con batería ≤ 20% no se puede iniciar otra misión. |
+| 2 | Batería baja | Con una misión en curso, en el Simulador, **Forzar batería baja** (18%). Aparece una advertencia en Alertas con la acción **Volver a punto seguro**. En Misiones, **Iniciar misión** queda deshabilitado: «Batería insuficiente (≤ 20%)». |
 | 3 | Desconexión | En el Simulador, apagar **Enlace con el robot**. A los 3 s: banner rojo en todas las pantallas, datos en gris con "DATOS OBSOLETOS" y contador de segundos. Enviar *Pausar* desde Control: queda **Pendiente** y a los 5 s pasa a **Sin respuesta**. Encender el enlace: vuelve la telemetría y el historial registra "Conexión recuperada". |
-| 4 | Incidente: obstáculo | Con una misión acompañando, en el Simulador, **Generar obstáculo**. El robot se pausa solo y aparece una alerta crítica. El operador decide: **Ruta alternativa** (reanudar), **Volver a punto seguro** o **Cancelar**. |
+| 4 | Incidente: obstáculo | Con una misión acompañando, en el Simulador, **Generar obstáculo**. El robot se pausa solo y aparece una alerta crítica. **Reanudar** queda bloqueado hasta **Reconocer** la alerta. Después el operador decide: **Ruta alternativa** (reanudar), **Volver a punto seguro** o **Cancelar**. |
 | 5 | Escenario propio: separación del paciente | Con una misión acompañando, **Paciente se aleja**. La distancia crece; al pasar 2,0 m el robot hace una pausa automática y aparece una alerta crítica. Reconocer la alerta, verificar al paciente y **Paciente reubicado** (reanudar). |
 
-Extra: **Rechazar próxima orden** hace que el robot rechace el siguiente comando, para mostrar el estado *Rechazada*.
+Extras del Simulador:
+
+- **Rechazar próxima orden**: el robot rechaza el siguiente comando, para mostrar el estado *Rechazada*.
+- **Señal WiFi**: fuerza señal débil (chip y WiFi en amarillo, sin perder el enlace).
+- **Sistema de voz**: fuerza una falla del canal de voz (variable propia en estado *Error*).
+- Obstáculo y separación solo se habilitan mientras el robot acompaña a un paciente.
 
 ## Riesgos contemplados en la interfaz
 

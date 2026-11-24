@@ -63,10 +63,17 @@ class RobotSimulator(
         val voice: VoiceStatus = VoiceStatus.INACTIVE,
         val obstacle: Boolean = false,
         val patientDrifting: Boolean = false,
+        val voiceFault: Boolean = false,
+        val weakSignal: Boolean = false,
         val stateBeforePause: OperationalState? = null,
         val pausedReason: String? = null,
         val alerts: List<Alert> = emptyList(),
     )
+
+    companion object {
+        /** Debajo del umbral de aviso (25%) y del mínimo para iniciar (20%). */
+        const val FORCED_LOW_BATTERY = 18.0
+    }
 
     private val mutex = Mutex()
     private var s = SimState()
@@ -280,7 +287,8 @@ class RobotSimulator(
             val a = s.alerts.firstOrNull { it.id == cmd.alertId } ?: return "Alerta inexistente"
             return if (a.status == AlertStatus.ACTIVE) null else "La alerta ya fue reconocida"
         }
-        return CommandRules.disabledReason(cmd.type, telemetryOf(s), stale = false)
+        val unackedCritical = s.alerts.any { it.severity == AlertSeverity.CRITICAL && it.status == AlertStatus.ACTIVE }
+        return CommandRules.disabledReason(cmd.type, telemetryOf(s), stale = false, unackedCritical = unackedCritical)
     }
 
     /** Aplica la orden y devuelve el mensaje de confirmación. */
@@ -361,7 +369,7 @@ class RobotSimulator(
     fun rejectNextCommand() { rejectNext = true }
 
     suspend fun forceBatteryLow() {
-        mutex.withLock { s = updateBatteryAlert(s.copy(battery = 24.0)) }
+        mutex.withLock { s = updateBatteryAlert(s.copy(battery = FORCED_LOW_BATTERY)) }
         emitSnapshot()
     }
 
@@ -371,6 +379,25 @@ class RobotSimulator(
             if (s.state == OperationalState.ACCOMPANYING) { s = s.copy(obstacle = true); true } else false
         }
         return ok
+    }
+
+    /** Señal WiFi débil: el enlace sigue, pero con poco margen (zona con mala cobertura). */
+    suspend fun setWeakSignal(weak: Boolean) {
+        mutex.withLock { s = s.copy(weakSignal = weak) }
+        emitSnapshot()
+    }
+
+    /** Falla del sistema de voz: el robot sigue, pero el paciente no recibe indicaciones habladas. */
+    suspend fun setVoiceFault(fault: Boolean) {
+        mutex.withLock {
+            if (fault != s.voiceFault) {
+                emit(EventType.ALERT, if (fault) "Falla del sistema de voz" else "Sistema de voz restablecido",
+                    if (fault) "Sin indicaciones habladas: el personal debe guiar al paciente." else "Indicaciones habladas disponibles.",
+                    s.mission?.id)
+            }
+            s = s.copy(voiceFault = fault)
+        }
+        emitSnapshot()
     }
 
     /** Escenario propio: el paciente se separa del robot. */
@@ -395,8 +422,12 @@ class RobotSimulator(
 
     private fun telemetryOf(st: SimState) = Telemetry(
         robotId = robotId,
-        connectivity = if (_connected.value) Connectivity.STRONG else Connectivity.DISCONNECTED,
-        wifiDbm = -52 - Random.nextInt(0, 8),
+        connectivity = when {
+            !_connected.value -> Connectivity.DISCONNECTED
+            st.weakSignal -> Connectivity.WEAK
+            else -> Connectivity.STRONG
+        },
+        wifiDbm = if (st.weakSignal) -78 - Random.nextInt(0, 8) else -52 - Random.nextInt(0, 8),
         batteryPct = st.battery,
         state = st.state,
         mission = st.mission,
@@ -412,7 +443,7 @@ class RobotSimulator(
         timestamp = clock(),
         patientDistanceM = st.patientDistance,
         accompaniment = st.accompaniment,
-        voice = st.voice,
+        voice = if (st.voiceFault) VoiceStatus.ERROR else st.voice,
         pausedReason = st.pausedReason,
     )
 

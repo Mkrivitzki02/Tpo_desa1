@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uade.hmig1.domain.model.AlertSeverity
+import com.uade.hmig1.domain.model.Connectivity
 import com.uade.hmig1.domain.model.OperationalState
 import com.uade.hmig1.domain.model.VoiceStatus
 import com.uade.hmig1.ui.HmiUiState
@@ -65,7 +66,11 @@ fun PanelScreen(state: HmiUiState, onOpenAlerts: () -> Unit) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     StatusChip(
                         if (stale) "Sin conexión" else "● ${t.connectivity.label}",
-                        if (stale) VisualState.ERROR else VisualState.NORMAL,
+                        when {
+                            stale -> VisualState.ERROR
+                            t.connectivity == Connectivity.WEAK -> VisualState.WARNING
+                            else -> VisualState.NORMAL
+                        },
                     )
                     Spacer(Modifier.weight(1f))
                     Text(
@@ -117,7 +122,11 @@ fun PanelScreen(state: HmiUiState, onOpenAlerts: () -> Unit) {
                     )
                     TelemetryTile(
                         "WiFi", if (stale) "Sin señal" else "${t.wifiDbm} dBm", Modifier.weight(1f),
-                        state = if (stale) VisualState.ERROR else VisualState.NORMAL,
+                        state = when {
+                            stale -> VisualState.ERROR
+                            t.connectivity == Connectivity.WEAK -> VisualState.WARNING
+                            else -> VisualState.NORMAL
+                        },
                     )
                     TelemetryTile("Estado", t.state.label, Modifier.weight(1f), stale = stale)
                 }

@@ -30,8 +30,11 @@
 }
 ```
 
+- `connectivity` puede ser `strong`, `weak` o `disconnected` (la app además marca *sin conexión* si el dato tiene más de 3 s).
 - `operational_state` puede ser `at_base`, `going_to_patient`, `accompanying`, `waiting_handoff`, `returning`, `paused` o `stopped`.
 - `accompaniment_state` puede ser `none`, `locating`, `accompanying`, `waiting_handoff` o `delivered`.
+- `voice_system` puede ser `active`, `inactive` o `error`.
+- `patient_distance_m` es `null` cuando no hay paciente acompañado; el límite es 2,0 m.
 - La app considera **obsoleto** todo dato con `timestamp` de más de 3 s de antigüedad.
 
 ## 2. Comando (app → robot)

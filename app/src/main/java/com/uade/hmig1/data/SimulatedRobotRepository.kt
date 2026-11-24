@@ -37,7 +37,7 @@ class SimulatedRobotRepository(
 
     override val robots = listOf(
         RobotSummary("G1-01", "Asistente de planta", "Sector B · Base de carga", 78, RobotAvailability.AVAILABLE),
-        RobotSummary("G1-02", "Asistente de reparto", "Sector A · Pasillo 2", 64, RobotAvailability.IN_MISSION),
+        RobotSummary("G1-02", "Asistente de guía", "Sector A · Pasillo 2", 64, RobotAvailability.IN_MISSION),
         RobotSummary("G1-03", "Asistente de recepción", "Última conexión 09:12", null, RobotAvailability.OFFLINE),
     )
 
@@ -127,6 +127,8 @@ class SimulatedRobotRepository(
         override fun forceBatteryLow() { scope.launch { simulator.forceBatteryLow() } }
         override fun triggerObstacle() { scope.launch { simulator.triggerObstacle() } }
         override fun patientWalksAway() { scope.launch { simulator.patientWalksAway() } }
+        override fun setVoiceFault(fault: Boolean) { scope.launch { simulator.setVoiceFault(fault) } }
+        override fun setWeakSignal(weak: Boolean) { scope.launch { simulator.setWeakSignal(weak) } }
         override fun reset() {
             scope.launch {
                 simulator.reset()

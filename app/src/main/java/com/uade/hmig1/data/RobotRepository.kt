@@ -48,5 +48,7 @@ interface SimulationControls {
     fun forceBatteryLow()
     fun triggerObstacle()
     fun patientWalksAway()
+    fun setVoiceFault(fault: Boolean)
+    fun setWeakSignal(weak: Boolean)
     fun reset()
 }

@@ -44,7 +44,7 @@ fun RobotSelectionScreen(robots: List<RobotSummary>, onSelect: (String) -> Unit)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("RoboAsist · Flota", color = HmiColors.Muted, fontSize = 13.sp)
+        Text("RoboAssist · Flota", color = HmiColors.Muted, fontSize = 13.sp)
         Text("Selección de robot", fontWeight = FontWeight.Bold, fontSize = 26.sp)
         Text("Flota hospitalaria · ${robots.size} unidades Unitree G1 (simuladas)", color = HmiColors.Muted, fontSize = 13.sp)
         Spacer(Modifier.height(4.dp))

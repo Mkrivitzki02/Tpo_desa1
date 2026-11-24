@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +46,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.uade.hmig1.domain.model.CommandType
+import com.uade.hmig1.domain.model.OperationalState
 import com.uade.hmig1.ui.components.StatusChip
 import com.uade.hmig1.ui.components.VisualState
 import com.uade.hmig1.ui.screens.AlertsScreen
@@ -87,7 +89,9 @@ private fun MainScaffold(vm: HmiViewModel, state: HmiUiState) {
 
     // Órdenes con confirmación obligatoria (riesgo: órdenes accidentales)
     val onCommand: (CommandType) -> Unit = { type ->
-        if (type.requiresConfirmation) confirm = type else vm.send(type)
+        // Reanudar después de una parada operativa exige un desbloqueo explícito.
+        val unlock = type == CommandType.RESUME_MISSION && state.telemetry?.state == OperationalState.STOPPED
+        if (type.requiresConfirmation || unlock) confirm = type else vm.send(type)
     }
 
     Scaffold(
@@ -97,7 +101,7 @@ private fun MainScaffold(vm: HmiViewModel, state: HmiUiState) {
                 title = {
                     Column {
                         Text("${state.selectedRobotId} · Asistente de planta", fontSize = 12.sp, color = HmiColors.Muted)
-                        Text(titleFor(route), fontWeight = FontWeight.Bold)
+                        Text(titleFor(route), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 },
                 navigationIcon = {
@@ -125,10 +129,17 @@ private fun MainScaffold(vm: HmiViewModel, state: HmiUiState) {
                     NavigationBarItem(
                         selected = route == tab.route,
                         onClick = {
-                            nav.navigate(tab.route) {
-                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                            // El Simulador no pertenece a ninguna pestaña: se cierra antes de cambiar,
+                            // si no quedaría guardado dentro de la pestaña y volvería a aparecer.
+                            if (route == "simulador") nav.popBackStack()
+                            if (tab.route == "panel") {
+                                nav.popBackStack(nav.graph.findStartDestination().id, inclusive = false)
+                            } else {
+                                nav.navigate(tab.route) {
+                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         },
                         icon = {
@@ -178,7 +189,7 @@ private fun titleFor(route: String?) = when (route) {
     "control" -> "Control"
     "alertas" -> "Alertas"
     "historial" -> "Historial"
-    "simulador" -> "Simulador de escenarios"
+    "simulador" -> "Simulador"
     else -> "Panel de supervisión"
 }
 
@@ -222,6 +233,11 @@ private fun ConfirmDialog(type: CommandType, robotId: String, onConfirm: () -> U
                 "No es una parada física de emergencia.",
             "Confirmar parada",
         )
+        CommandType.RESUME_MISSION -> Triple(
+            "¿Desbloquear y reanudar?",
+            "$robotId está en parada operativa. Confirmá que revisaste el robot y su entorno antes de que retome el recorrido.",
+            "Desbloquear y reanudar",
+        )
         else -> Triple(type.label, "¿Confirmás la orden?", "Confirmar")
     }
     AlertDialog(
@@ -232,7 +248,7 @@ private fun ConfirmDialog(type: CommandType, robotId: String, onConfirm: () -> U
             TextButton(
                 onClick = onConfirm,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = if (type == CommandType.RETURN_TO_SAFE_POINT) HmiColors.Primary else HmiColors.Error,
+                    contentColor = if (type == CommandType.RETURN_TO_SAFE_POINT || type == CommandType.RESUME_MISSION) HmiColors.Primary else HmiColors.Error,
                 ),
             ) { Text(cta, fontWeight = FontWeight.Bold) }
         },
